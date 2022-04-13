@@ -1,15 +1,18 @@
-package org.jboss.pnc.logging.kafka;
+package io.quarkiverse.logging.kafka;
 
-import net.minidev.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.log4j.Layout;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.log4j.spi.ThrowableInformation;
 
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 
 /**
@@ -19,7 +22,7 @@ import java.util.TimeZone;
  */
 public class PncLoggingLayout extends Layout {
 
-    private FastDateFormat timestampFormat;
+    private final FastDateFormat timestampFormat;
 
     private boolean ignoreThrowable = false;
 
@@ -29,18 +32,15 @@ public class PncLoggingLayout extends Layout {
     public static final TimeZone UTC = TimeZone.getTimeZone("UTC");
     public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
+    private static final ObjectMapper MAPPER = new JsonMapper();
+
     /**
      * Creates a layout that optionally inserts location information into log messages.
      *
-     * @param locationInfo whether or not to include location information in the log messages.
+     * @param timestampFormat timestamp format
      */
     public PncLoggingLayout(String timestampFormat) {
-        String format;
-        if (timestampFormat != null) {
-            format = timestampFormat;
-        } else {
-            format = DEFAULT_DATETIME_FORMAT;
-        }
+        String format = Objects.requireNonNullElse(timestampFormat, DEFAULT_DATETIME_FORMAT);
         try {
             this.hostname = java.net.InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
@@ -62,7 +62,7 @@ public class PncLoggingLayout extends Layout {
         Map mdc = loggingEvent.getProperties();
         String ndc = loggingEvent.getNDC();
 
-        JSONObject jsonEvent = new JSONObject();
+        ObjectNode jsonEvent = MAPPER.createObjectNode();
 
         jsonEvent.put("@version", version);
         jsonEvent.put("@timestamp", dateFormat(timestamp));
@@ -80,7 +80,7 @@ public class PncLoggingLayout extends Layout {
                 exceptionInformation.put("exceptionMessage", throwableInformation.getThrowable().getMessage());
             }
             if (throwableInformation.getThrowableStrRep() != null) {
-                String stackTrace = StringUtils.join(throwableInformation.getThrowableStrRep(), "\n");
+                String stackTrace = String.join("\n", Arrays.asList(throwableInformation.getThrowableStrRep()));
                 exceptionInformation.put("stacktrace", stackTrace);
             }
             addEventData(jsonEvent, "exception", exceptionInformation);
@@ -96,10 +96,10 @@ public class PncLoggingLayout extends Layout {
         addEventData(jsonEvent, "loggerName", loggingEvent.getLoggerName());
         addEventData(jsonEvent, "mdc", mdc);
         addEventData(jsonEvent, "ndc", ndc);
-        addEventData(jsonEvent, "level", loggingEvent.getLevel().toString());
+        addEventData(jsonEvent, "level", loggingEvent.getLevel());
         addEventData(jsonEvent, "threadName", threadName);
 
-        return jsonEvent.toString() + "\n";
+        return jsonEvent + "\n";
     }
 
     @Override
@@ -111,9 +111,9 @@ public class PncLoggingLayout extends Layout {
     public void activateOptions() {
     }
 
-    private void addEventData(JSONObject jsonEvent, String keyname, Object keyval) {
-        if (null != keyval) {
-            jsonEvent.put(keyname, keyval);
+    private void addEventData(ObjectNode jsonEvent, String keyname, Object keyval) {
+        if (keyval != null) {
+            jsonEvent.put(keyname, keyval.toString());
         }
     }
 

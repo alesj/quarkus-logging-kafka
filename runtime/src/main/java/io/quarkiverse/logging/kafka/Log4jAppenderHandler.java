@@ -1,4 +1,4 @@
-package org.jboss.pnc.logging.kafka;
+package io.quarkiverse.logging.kafka;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Formatter;
@@ -28,7 +28,7 @@ public class Log4jAppenderHandler extends ExtHandler {
     private volatile Appender appender = null;
     private final boolean applyLayout;
 
-    private static final Logger loggingLogger = Logger.getLogger("org.jboss.pnc.logging.kafka.Log4jAppenderHandler");
+    private static final Logger loggingLogger = Logger.getLogger("io.quarkiverse.logging.kafka.Log4jAppenderHandler");
 
     private static final AtomicReferenceFieldUpdater<Log4jAppenderHandler, Appender> appenderUpdater = AtomicReferenceFieldUpdater
             .newUpdater(Log4jAppenderHandler.class, Appender.class, "appender");

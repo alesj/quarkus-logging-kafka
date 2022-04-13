@@ -1,4 +1,4 @@
-package org.jboss.pnc.logging.kafka;
+package io.quarkiverse.logging.kafka;
 
 import java.util.Optional;
 import java.util.logging.Level;

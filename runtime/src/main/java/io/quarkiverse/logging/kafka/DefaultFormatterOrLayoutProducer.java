@@ -1,4 +1,4 @@
-package org.jboss.pnc.logging.kafka;
+package io.quarkiverse.logging.kafka;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Layout;
@@ -17,9 +17,8 @@ import java.util.logging.Formatter;
 public class DefaultFormatterOrLayoutProducer {
 
 
-    public static FormatterOrLayout kafkaLayout(String timestampPattern) {
+    public static FormatterOrLayout pncLayout(String timestampPattern) {
         PncLoggingLayout layout = new PncLoggingLayout(timestampPattern);
-
         return new FormatterOrLayout(null, layout);
     }
 

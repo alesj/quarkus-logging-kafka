@@ -1,4 +1,4 @@
-package org.jboss.pnc.logging.kafka;
+package io.quarkiverse.logging.kafka;
 
 import java.util.Optional;
 import java.util.logging.Formatter;
@@ -19,14 +19,14 @@ import io.quarkus.runtime.annotations.Recorder;
  * The recorder providing configured {@link KafkaLog4jAppender} wrapped in a {@link Log4jAppenderHandler}. Optionally
  * the result can be wrapped in an {@link AsyncHandler} instance. The format of the produced log can be defined by
  * a {@link Formatter} or a {@link Layout}. That can be injected by implementation of {@link DefaultFormatterOrLayoutProducer}.
- * If no implementation of that interface is available, it uses {@link net.logstash.log4j.JSONEventLayoutV1}.
+ * If no implementation of that interface is available, it uses {@link PncLoggingLayout}.
  *
  * @author <a href="mailto:pkocandr@redhat.com">Petr Kocandrle</a>
  */
 @Recorder
 public class KafkaLogHandlerRecorder {
 
-    private static final Logger loggingLogger = Logger.getLogger("org.jboss.pnc.logging.kafka.KafkaLogHandlerRecorder");
+    private static final Logger loggingLogger = Logger.getLogger("io.quarkiverse.logging.kafka.KafkaLogHandlerRecorder");
 
     @Inject
     FormatterOrLayout formatterOrLayout;
@@ -50,12 +50,12 @@ public class KafkaLogHandlerRecorder {
 
         // set a formatter or a layout
         if (formatterOrLayout == null) {
-            loggingLogger.warning("No formatter or layout for kafka logger provided.");
+            loggingLogger.warning("No formatter or layout for Kafka logger provided.");
             String timestampPattern = null;
             if (config.timestampPattern.isPresent()) {
                 timestampPattern = config.timestampPattern.get();
             }
-            formatterOrLayout = DefaultFormatterOrLayoutProducer.kafkaLayout(timestampPattern);
+            formatterOrLayout = DefaultFormatterOrLayoutProducer.pncLayout(timestampPattern);
         }
 
         if (formatterOrLayout.hasLayout()) {
@@ -73,13 +73,8 @@ public class KafkaLogHandlerRecorder {
         ExtHandler rootHandler;
 
         if (config.async) {
-            AsyncHandler asyncWrapper;
-            if (config.asyncQueueLength.isPresent()) {
-                asyncWrapper = new AsyncHandler(config.asyncQueueLength.get());
-            } else {
-                asyncWrapper = new AsyncHandler();
-            }
-            config.asyncOverflowAction.ifPresent(action -> asyncWrapper.setOverflowAction(action));
+            AsyncHandler asyncWrapper = config.asyncQueueLength.map(AsyncHandler::new).orElseGet(AsyncHandler::new);
+            config.asyncOverflowAction.ifPresent(asyncWrapper::setOverflowAction);
             asyncWrapper.setLevel(config.level);
 
             asyncWrapper.addHandler(kafkaHandler);
@@ -99,23 +94,23 @@ public class KafkaLogHandlerRecorder {
         appender.setBrokerList(config.brokerList);
         appender.setTopic(config.topic);
 
-        config.compressionType.ifPresent(type -> appender.setCompressionType(type));
-        config.securityProtocol.ifPresent(protocol -> appender.setSecurityProtocol(protocol));
-        config.sslTruststoreLocation.ifPresent(location -> appender.setSslTruststoreLocation(location));
-        config.sslTruststorePassword.ifPresent(password -> appender.setSslTruststorePassword(password));
-        config.sslKeystoreType.ifPresent(type -> appender.setSslKeystoreType(type));
-        config.sslKeystoreLocation.ifPresent(location -> appender.setSslKeystoreLocation(location));
-        config.sslKeystorePassword.ifPresent(password -> appender.setSslKeystorePassword(password));
-        config.saslKerberosServiceName.ifPresent(name -> appender.setSaslKerberosServiceName(name));
-        config.clientJaasConfPath.ifPresent(path -> appender.setClientJaasConfPath(path));
-        config.kerb5ConfPath.ifPresent(path -> appender.setKerb5ConfPath(path));
-        config.maxBlockMs.ifPresent(maxBlockMs -> appender.setMaxBlockMs(maxBlockMs));
+        config.compressionType.ifPresent(appender::setCompressionType);
+        config.securityProtocol.ifPresent(appender::setSecurityProtocol);
+        config.sslTruststoreLocation.ifPresent(appender::setSslTruststoreLocation);
+        config.sslTruststorePassword.ifPresent(appender::setSslTruststorePassword);
+        config.sslKeystoreType.ifPresent(appender::setSslKeystoreType);
+        config.sslKeystoreLocation.ifPresent(appender::setSslKeystoreLocation);
+        config.sslKeystorePassword.ifPresent(appender::setSslKeystorePassword);
+        config.saslKerberosServiceName.ifPresent(appender::setSaslKerberosServiceName);
+        config.clientJaasConfPath.ifPresent(appender::setClientJaasConfPath);
+        config.kerb5ConfPath.ifPresent(appender::setKerb5ConfPath);
+        config.maxBlockMs.ifPresent(appender::setMaxBlockMs);
 
-        config.retries.ifPresent(retries -> appender.setRetries(retries));
-        config.requiredNumAcks.ifPresent(acks -> appender.setRequiredNumAcks(acks));
-        config.deliveryTimeoutMs.ifPresent(timeout -> appender.setDeliveryTimeoutMs(timeout));
-        config.ignoreExceptions.ifPresent(ignoreExceptions -> appender.setIgnoreExceptions(ignoreExceptions));
-        config.syncSend.ifPresent(syncSend -> appender.setSyncSend(syncSend));
+        config.retries.ifPresent(appender::setRetries);
+        config.requiredNumAcks.ifPresent(appender::setRequiredNumAcks);
+        config.deliveryTimeoutMs.ifPresent(appender::setDeliveryTimeoutMs);
+        config.ignoreExceptions.ifPresent(appender::setIgnoreExceptions);
+        config.syncSend.ifPresent(appender::setSyncSend);
 
         loggingLogger.finer("Running appender.activateOptions()");
         appender.activateOptions();
